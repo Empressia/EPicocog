@@ -1,18 +1,23 @@
 plugins {
 	id "java";
+	id "java-library";
+	id "signing";
 	id "maven-publish";
+	id "jp.empressia.gradle.plugin.misc" version "1.0.5";
 }
 
-ext.moduleName = "jp.empressia.template";
+ext.moduleName = "jp.empressia.picocog";
 ext.junitVersion = "5.7.0";
 ext.hamcrestVersion = "2.2";
+archivesBaseName = moduleName;
 
 repositories {
-	jcenter();
-	maven { url(repository_url); }
+	mavenCentral();
 }
 
 dependencies {
+	api(group:"org.ainslec", name:"picocog", version:"1.0.7");
+
 	// use JUnit test framework.
 	testImplementation(group:"org.junit.jupiter", name:"junit-jupiter-api", version:junitVersion);
 	testRuntimeOnly(group:"org.junit.jupiter", name:"junit-jupiter-engine", version:junitVersion);
@@ -21,21 +26,20 @@ dependencies {
 
 tasks.withType(JavaCompile) {
 	options.encoding "UTF-8";
+	options.release = 11;
 	options.compilerArgs << "-parameters";
 }
 
 java {
+	modularity.inferModulePath = true;
 	withJavadocJar();
 	withSourcesJar();
-}
-
-tasks.withType(Jar) {
-	archiveBaseName = moduleName;
 }
 
 javadoc {
 	options.charSet "UTF-8";
 	options.encoding "UTF-8";
+	options.addBooleanOption("html5", true);
 	options.addStringOption("Xdoclint:none", "-quiet");
 }
 
@@ -48,14 +52,55 @@ publishing {
 		maven(MavenPublication) {
 			groupId = "jp.empressia";
 			artifactId = moduleName;
-			artifact jar;
-			artifact javadocJar;
-			artifact sourcesJar;
+			from components.java;
+			// for Maven Central.
+			pom {
+				name = "EPicocog";
+				description = "Unofficial Picocog extensions.";
+				url = "https://github.com/Empressia/EPicocog";
+				licenses {
+					license {
+						name = "zlib License";
+						comments = "If you want to use this with a team (multiple people), select the MIT license.";
+					}
+					license {
+						name = "MIT License";
+						comments = "If you want to use this with a team (multiple people), select the MIT license.";
+					}
+				}
+				developers {
+					developer {
+						// The unique ID of this developer in the SCM.
+						id = "Empressia";
+					}
+				}
+				scm {
+					connection = "scm:git:https://github.com/Empressia/EPicocog.git"
+					url = "https://github.com/Empressia/EPicocog.git"
+				}
+			}
 		}
 	}
 	repositories {
+		// publishMavenPublicationToLocalNetworkRepository
 		maven {
-			url = repository_url;
+			name = "LocalNetwork";
+			url = local_network_repository_url;
+		}
+		// publishMavenPublicationToMavenCentralRepository
+		maven {
+			name = "MavenCentral";
+			def releasesRepoUrl = sonatype_release_repository_url;
+			def snapshotsRepoUrl = sonatype_snapshot_repository_url;
+			url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl;
+			credentials {
+				username = sonatype_username;
+				password = sonatype_password;
+			}
 		}
 	}
+}
+
+signing {
+	sign publishing.publications.maven;
 }

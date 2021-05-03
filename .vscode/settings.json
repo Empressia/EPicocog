@@ -1,0 +1,7 @@
+{
+	"java.test.config": [
+		{
+			"vmArgs": ["--module-path", "build/module/"],
+		}
+	],
+}
